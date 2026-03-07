@@ -5,9 +5,3 @@ services:
     container_name: flask-container-1
     ports:
       - "5000:5000"
-
-  flask-service-2:
-    image: djangodevloper/flask-api:latest
-    container_name: flask-container-2
-    ports:
-      - "8000:5000"
