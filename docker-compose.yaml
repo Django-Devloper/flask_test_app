@@ -12,7 +12,7 @@ services:
     hostname: flask-app
 
     ports :
-      [8001:8000]
+      [5000:5000]
 
     restart: unless-stopped
 
