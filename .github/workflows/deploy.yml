@@ -21,7 +21,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::919221584939:role/githubdeployemt
-          aws-region: us-east-1
+          aws-region: eu-north-1
 
       - name: Deploy to ECS
         run: |
