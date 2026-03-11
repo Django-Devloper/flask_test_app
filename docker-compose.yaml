@@ -16,7 +16,7 @@ services:
 
     restart: unless-stopped
 
-    command: ["python", "app.py"]
+    command: ["gunicorn","-w","2","-b","0.0.0.0:5000","app:app"]
     healthcheck:
       test: ["CMD","curl","-f","http://localhost:8000"]
       interval: 30s

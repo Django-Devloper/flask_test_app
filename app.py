@@ -1,24 +1,11 @@
 from flask import Flask, jsonify
 import os
-import psycopg2
-from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 
-
-def get_db_connection():
-    return psycopg2.connect(
-        host=os.environ.get("POSTGRES_HOST", "localhost"),
-        port=os.environ.get("POSTGRES_PORT", "5432"),
-        dbname=os.environ.get("POSTGRES_DB", "flaskdb"),
-        user=os.environ.get("POSTGRES_USER", "flaskuser"),
-        password=os.environ.get("POSTGRES_PASSWORD", "flaskpass"),
-    )
-
-
 @app.route("/")
 def home():
-    return jsonify({"message":"ok"})
+    return jsonify({"message":"this is from gunincorn"})
 
 @app.route("/hello/<name>")
 def hello(name):
