@@ -26,16 +26,55 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
+      # -------------------------
+      # SETUP PYTHON
+      # -------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+
+      # -------------------------
+      # INSTALL DEPENDENCIES
+      # -------------------------
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+
+      # -------------------------
+      # RUN TESTS
+      # -------------------------
+      - name: Run tests
+        run: |
+          pytest -v --cov=. --cov-fail-under=80
+
+
+      # -------------------------
+      # CONFIGURE AWS
+      # -------------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::919221584939:role/githubdeployemt
           aws-region: ${{ env.AWS_REGION }}
 
+
+      # -------------------------
+      # LOGIN TO ECR
+      # -------------------------
       - name: Login to ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+
+      # -------------------------
+      # BUILD AND PUSH IMAGE
+      # -------------------------
       - name: Build, tag, and push image
         id: build-image
         env:
@@ -46,12 +85,20 @@ jobs:
           docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
+
+      # -------------------------
+      # DOWNLOAD TASK DEFINITION
+      # -------------------------
       - name: Download current task definition
         run: |
           aws ecs describe-task-definition \
           --task-definition $TASK_DEFINITION \
           --query taskDefinition > task-definition.json
 
+
+      # -------------------------
+      # UPDATE IMAGE
+      # -------------------------
       - name: Fill new image in task definition
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -60,6 +107,10 @@ jobs:
           container-name: ${{ env.CONTAINER_NAME }}
           image: ${{ steps.build-image.outputs.image }}
 
+
+      # -------------------------
+      # DEPLOY
+      # -------------------------
       - name: Deploy task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
