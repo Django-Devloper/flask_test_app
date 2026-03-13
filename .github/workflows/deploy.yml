@@ -5,6 +5,19 @@ on:
     branches:
       - main
 
+  workflow-dispatch:
+    inputs:
+      db_name:
+        description: "this is tes db"
+        required: true
+        default: "test_db"
+
+      service_name:
+        description: "test service_name"
+        required: true
+        default: "test_service"
+
+
 permissions:
   id-token: write
   contents: read
