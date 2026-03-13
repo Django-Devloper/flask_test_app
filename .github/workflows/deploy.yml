@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       database:
-        image: postgres:15
+        image: public.ecr.aws/docker/library/postgres:15.17-trixie
         ports: ["5432:5432"]
         env:
           POSTGRES_PASSWORD: sa_password!123456
