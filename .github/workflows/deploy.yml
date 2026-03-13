@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       database:
-        image: 454115844779.dkr.ecr.us-east-1.amazonaws.com/postgres/server:17.5.172
+        image: postgres:15
         ports: ["5432:5432"]
         env:
           POSTGRES_PASSWORD: sa_password!123456
