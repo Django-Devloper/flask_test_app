@@ -1,0 +1,68 @@
+name: Run Pytest
+description: Run pytest with optional coverage and JUnit outputs.
+
+inputs:
+  pytest-args:
+    description: Extra args passed to pytest (e.g. -v)
+    required: false
+    default: "-v"
+  markers:
+    description: Pytest marker expression (passed to -m)
+    required: false
+    default: ""
+  cov-target:
+    description: Coverage target (empty disables coverage)
+    required: false
+    default: "."
+  cov-xml:
+    description: Coverage XML output path (empty disables)
+    required: false
+    default: "TestResults/coverage.xml"
+  junit-xml:
+    description: JUnit XML output path (empty disables)
+    required: false
+    default: "TestResults/pytest-results.xml"
+  cov-fail-under:
+    description: Fail build if coverage is under this percent (empty disables)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run tests
+      shell: bash
+      env:
+        PYTEST_ARGS: ${{ inputs.pytest-args }}
+        PYTEST_MARKERS: ${{ inputs.markers }}
+        COV_TARGET: ${{ inputs.cov-target }}
+        COV_XML: ${{ inputs.cov-xml }}
+        JUNIT_XML: ${{ inputs.junit-xml }}
+        COV_FAIL_UNDER: ${{ inputs.cov-fail-under }}
+      run: |
+        set -euo pipefail
+
+        mkdir -p TestResults
+
+        cmd=(python -m pytest)
+        if [ -n "$PYTEST_ARGS" ]; then
+          # shellcheck disable=SC2206
+          cmd+=($PYTEST_ARGS)
+        fi
+        if [ -n "$PYTEST_MARKERS" ]; then
+          cmd+=(-m "$PYTEST_MARKERS")
+        fi
+        if [ -n "$COV_TARGET" ]; then
+          cmd+=(--cov="$COV_TARGET")
+        fi
+        if [ -n "$COV_XML" ]; then
+          cmd+=(--cov-report="xml:$COV_XML")
+        fi
+        if [ -n "$JUNIT_XML" ]; then
+          cmd+=(--junitxml="$JUNIT_XML")
+        fi
+        if [ -n "$COV_FAIL_UNDER" ]; then
+          cmd+=(--cov-fail-under="$COV_FAIL_UNDER")
+        fi
+
+        "${cmd[@]}"

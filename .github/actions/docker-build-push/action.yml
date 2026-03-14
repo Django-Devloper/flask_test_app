@@ -1,0 +1,35 @@
+name: Docker Build and Push
+description: Build a Docker image and push it to a registry.
+
+inputs:
+  registry:
+    description: Registry hostname (e.g. 123.dkr.ecr.region.amazonaws.com)
+    required: true
+  repository:
+    description: Repository name (e.g. flask-app)
+    required: true
+  tag:
+    description: Image tag (e.g. git sha)
+    required: true
+
+outputs:
+  image:
+    description: Full image reference pushed
+    value: ${{ steps.build.outputs.image }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build and push
+      id: build
+      shell: bash
+      env:
+        REGISTRY: ${{ inputs.registry }}
+        REPOSITORY: ${{ inputs.repository }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        set -euo pipefail
+        image="$REGISTRY/$REPOSITORY:$TAG"
+        docker build -t "$image" .
+        docker push "$image"
+        echo "image=$image" >> "$GITHUB_OUTPUT"

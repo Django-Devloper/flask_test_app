@@ -56,41 +56,27 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v3
+      - name: Setup Python + deps
+        uses: ./.github/actions/python-deps
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Install Postgres client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
-      - name: Wait for Postgres
-        run: |
-          until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
-            echo "Waiting for Postgres..."
-            sleep 2
-          done
-
-      - name: Create test database
-        env:
-          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
-        run: |
-          psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres -c "CREATE DATABASE \"$POSTGRES_DB\";" || true
+      - name: Prepare Postgres
+        uses: ./.github/actions/postgres-prepare
+        with:
+          host: ${{ env.POSTGRES_HOST }}
+          port: ${{ env.POSTGRES_PORT }}
+          user: ${{ env.POSTGRES_USER }}
+          password: ${{ env.POSTGRES_PASSWORD }}
+          db: ${{ env.POSTGRES_DB }}
 
       - name: Run tests
-        run: |
-          mkdir -p TestResults
-          python -m pytest -v \
-            --cov=. \
-            --cov-report=xml:TestResults/coverage.xml \
-            --junitxml=TestResults/pytest-results.xml
+        uses: ./.github/actions/run-pytest
+        with:
+          pytest-args: "-v"
+          cov-target: "."
+          cov-xml: "TestResults/coverage.xml"
+          junit-xml: "TestResults/pytest-results.xml"
       
       - name: Upload test artifacts
         if: success() || failure()
@@ -104,31 +90,24 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ success()}}
     steps:
-      # -------------------------
-      # SETUP PYTHON
-      # -------------------------
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup Python + deps
+        uses: ./.github/actions/python-deps
         with:
           python-version: "3.11"
-
-
-      # -------------------------
-      # INSTALL DEPENDENCIES
-      # -------------------------
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov
 
     
       # -------------------------
       # RUN TESTS
       # -------------------------
       - name: Run tests
-        run: |
-          pytest -v --cov=. --cov-fail-under=80 -m "not integration"
+        uses: ./.github/actions/run-pytest
+        with:
+          pytest-args: "-v"
+          markers: "not integration"
+          cov-target: "."
+          cov-xml: ""
+          junit-xml: ""
+          cov-fail-under: "80"
 
 
       # -------------------------
@@ -154,13 +133,11 @@ jobs:
       # -------------------------
       - name: Build, tag, and push image
         id: build-image
-        env:
-          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker build -t $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker push $REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        uses: ./.github/actions/docker-build-push
+        with:
+          registry: ${{ steps.login-ecr.outputs.registry }}
+          repository: ${{ env.ECR_REPOSITORY }}
+          tag: ${{ github.sha }}
 
 
       # -------------------------

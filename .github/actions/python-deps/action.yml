@@ -1,0 +1,34 @@
+name: Setup Python and Install Dependencies
+description: Setup Python and install pip dependencies from a requirements file.
+
+inputs:
+  python-version:
+    description: Python version to install
+    required: false
+    default: "3.11"
+  requirements-file:
+    description: Requirements file path
+    required: false
+    default: "requirements.txt"
+  extra-pip:
+    description: Extra pip packages to install (space-separated)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        set -euo pipefail
+        python -m pip install --upgrade pip
+        pip install -r "${{ inputs.requirements-file }}"
+        if [ -n "${{ inputs.extra-pip }}" ]; then
+          pip install ${{ inputs.extra-pip }}
+        fi

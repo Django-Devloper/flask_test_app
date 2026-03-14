@@ -1,0 +1,68 @@
+name: Prepare Postgres For Tests
+description: Install Postgres client, wait for Postgres, and create a database if missing.
+
+inputs:
+  host:
+    description: Postgres host
+    required: false
+    default: "localhost"
+  port:
+    description: Postgres port
+    required: false
+    default: "5432"
+  user:
+    description: Postgres user
+    required: false
+    default: "postgres"
+  password:
+    description: Postgres password
+    required: true
+  db:
+    description: Database to create for tests
+    required: true
+  timeout-seconds:
+    description: Max seconds to wait for readiness
+    required: false
+    default: "60"
+
+runs:
+  using: composite
+  steps:
+    - name: Install Postgres client
+      shell: bash
+      run: |
+        set -euo pipefail
+        sudo apt-get update
+        sudo apt-get install -y postgresql-client
+
+    - name: Wait for Postgres
+      shell: bash
+      env:
+        POSTGRES_HOST: ${{ inputs.host }}
+        POSTGRES_PORT: ${{ inputs.port }}
+        POSTGRES_USER: ${{ inputs.user }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: |
+        set -euo pipefail
+        deadline=$((SECONDS + TIMEOUT_SECONDS))
+        until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
+          if [ "$SECONDS" -ge "$deadline" ]; then
+            echo "Timed out waiting for Postgres" >&2
+            exit 1
+          fi
+          echo "Waiting for Postgres..."
+          sleep 2
+        done
+
+    - name: Create test database
+      shell: bash
+      env:
+        POSTGRES_HOST: ${{ inputs.host }}
+        POSTGRES_PORT: ${{ inputs.port }}
+        POSTGRES_USER: ${{ inputs.user }}
+        POSTGRES_DB: ${{ inputs.db }}
+        PGPASSWORD: ${{ inputs.password }}
+      run: |
+        set -euo pipefail
+        psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d postgres \
+          -c "CREATE DATABASE \"$POSTGRES_DB\";" || true
